@@ -29,8 +29,9 @@ interface PackageFile {
   devDependencies?: object;
 }
 
-// package.json dependencies array type
-type PackageDependency = [name: string, version: string];
+interface Dependency {
+  [key: string]: string;
+}
 
 function main(): void {
   if (process.argv.length < 3) {
@@ -61,8 +62,8 @@ function main(): void {
     fs.mkdirSync(path.join(args[0], "routes"));
   }
 
-  let dependencies: PackageDependency[] = [["express", "^4.18.2"]];
-  let devDependencies: PackageDependency[] = [];
+  let dependencies: Dependency = { express: "^4.18.2" };
+  let devDependencies: Dependency = {};
 
   let indexJS: IndexFile = {
     requireChunks: ['const express = require("express");'],
@@ -81,12 +82,12 @@ function main(): void {
     switch (args[i]) {
       case "-e":
         indexJS.requireChunks.unshift('require("dotenv").config()');
-        devDependencies.push(["dotenv", "^16.3.1"]);
+        devDependencies["dotenv"] = "^16.3.1";
         fs.closeSync(fs.openSync(path.join(args[0], ".env"), "w"));
     }
   }
 
-  // Create index.js
+  // Generate index.js
   const indexFD: number = fs.openSync(path.join(args[0], "index.js"), "w");
   for (const key in indexJS) {
     indexJS[key as keyof IndexFile].forEach((line) => {
@@ -97,7 +98,7 @@ function main(): void {
   }
   fs.closeSync(indexFD);
 
-  // Create package.json
+  // Generate package.json
   let packageJSON: PackageFile = {
     name: args[0],
     version: "1.0.0",
@@ -111,7 +112,8 @@ function main(): void {
     license: "ISC",
     dependencies: dependencies,
   };
-  if (devDependencies.length > 0) packageJSON.devDependencies = devDependencies;
+  if (Object.keys(devDependencies).length > 0)
+    packageJSON.devDependencies = devDependencies;
 
   const packageFD: number = fs.openSync(
     path.join(args[0], "package.json"),
