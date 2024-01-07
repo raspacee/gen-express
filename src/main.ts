@@ -56,17 +56,51 @@ function main(): void {
   if (fs.existsSync(args[0])) {
     console.log(`Directory '${args[0]}' already exists. Pick another name`);
     exit(-1);
-  } else {
-    fs.mkdirSync(args[0]);
-    fs.mkdirSync(path.join(args[0], "controllers"));
-    fs.mkdirSync(path.join(args[0], "routes"));
   }
+  fs.mkdirSync(args[0]);
+  fs.mkdirSync(path.join(args[0], "controllers"));
+  fs.mkdirSync(path.join(args[0], "routes"));
+
+  const indexControllerData = `exports.get_handler = (req, res, next) => {
+return res.status(200).send("Hi :), this was generated using generate-express");
+}
+  `;
+  fs.writeFile(
+    path.join(args[0], "controllers", "index.controller.js"),
+    indexControllerData,
+    (err) => {
+      if (err) {
+        console.error(err);
+        exit(-1);
+      }
+    }
+  );
+
+  const indexRouteData = `const router = require("express").Router();
+const indexController = require("../controllers/index.controller.js");
+
+router.get("/", indexController.get_handler);
+
+module.exports = router;`;
+  fs.writeFile(
+    path.join(args[0], "routes", "index.router.js"),
+    indexRouteData,
+    (err) => {
+      if (err) {
+        console.error(err);
+        exit(-1);
+      }
+    }
+  );
 
   let dependencies: Dependency = { express: "^4.18.2" };
   let devDependencies: Dependency = {};
 
   let indexJS: IndexFile = {
-    requireChunks: ['const express = require("express");'],
+    requireChunks: [
+      'const express = require("express");',
+      'const indexRouter = require("./routes/index.router.js");',
+    ],
     initializeChunks: ["const app = express();"],
     middlewareChunks: [
       "app.use(express.json());",
@@ -83,7 +117,7 @@ function main(): void {
       case "-e":
         indexJS.requireChunks.unshift('require("dotenv").config()');
         devDependencies["dotenv"] = "^16.3.1";
-        fs.closeSync(fs.openSync(path.join(args[0], ".env"), "w"));
+        fs.writeFileSync(path.join(args[0], ".env"), "YOUR_KEY=YOUR_VALUE");
     }
   }
 
@@ -100,7 +134,7 @@ function main(): void {
 
   // Generate package.json
   let packageJSON: PackageFile = {
-    name: args[0],
+    name: path.join(args[0]),
     version: "1.0.0",
     description: "",
     main: "index.js",
@@ -115,12 +149,16 @@ function main(): void {
   if (Object.keys(devDependencies).length > 0)
     packageJSON.devDependencies = devDependencies;
 
-  const packageFD: number = fs.openSync(
+  fs.writeFile(
     path.join(args[0], "package.json"),
-    "w"
+    JSON.stringify(packageJSON, null, 2),
+    (err) => {
+      if (err) {
+        console.error(err);
+        exit(-1);
+      }
+    }
   );
-  fs.writeFileSync(packageFD, JSON.stringify(packageJSON, null, 2));
-  fs.closeSync(packageFD);
 }
 
 // Removes any invalid arguments and returns valid arguments only
