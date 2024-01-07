@@ -1,5 +1,5 @@
 import { exit } from "process";
-import fs from "fs";
+import fs, { mkdirSync } from "fs";
 import path from "path";
 
 const VERSION: string = "1.0.0";
@@ -21,16 +21,24 @@ interface PackageFile {
   version: string;
   description: string;
   main: string;
-  scripts: object;
+  scripts: PackageScript;
   keywords: string[];
   author: string;
   license: string;
-  dependencies: object;
-  devDependencies?: object;
+  dependencies: PackageDependency;
+  devDependencies?: PackageDependency;
 }
 
-interface Dependency {
-  [key: string]: string;
+interface ControllerFile {
+  functionChunks: string[];
+}
+
+interface PackageDependency {
+  [packageName: string]: string;
+}
+
+interface PackageScript {
+  [scriptName: string]: string;
 }
 
 function main(): void {
@@ -44,10 +52,13 @@ function main(): void {
     console.log(`generate-express: version ${VERSION}
             Usage:
             generate-express [DIRECTORY-NAME] [OPTIONS]
-            generate-express -h or generate-express --help
+            Example:
+            generate-express my_webapp -e -n
 
             Options:
             -e:                         add 'dotenv' environment variable support 
+            -n:                         add nodemon
+            -v=[OPTION]                 add view engine support (pug, ejs)
         `);
     exit(0);
   }
@@ -61,20 +72,12 @@ function main(): void {
   fs.mkdirSync(path.join(args[0], "controllers"));
   fs.mkdirSync(path.join(args[0], "routes"));
 
-  const indexControllerData = `exports.get_handler = (req, res, next) => {
-return res.status(200).send("Hi :), this was generated using generate-express");
-}
-  `;
-  fs.writeFile(
-    path.join(args[0], "controllers", "index.controller.js"),
-    indexControllerData,
-    (err) => {
-      if (err) {
-        console.error(err);
-        exit(-1);
-      }
-    }
-  );
+  //   const indexControllerData = `exports.get_handler = (req, res, next) => {
+  // return res.status(200).send("Hi :) this was generated using generate-express");
+  // }`;
+  let indexController: ControllerFile = {
+    functionChunks: [],
+  };
 
   const indexRouteData = `const router = require("express").Router();
 const indexController = require("../controllers/index.controller.js");
@@ -93,8 +96,9 @@ module.exports = router;`;
     }
   );
 
-  let dependencies: Dependency = { express: "^4.18.2" };
-  let devDependencies: Dependency = {};
+  // Initialize package.json contents
+  let dependencies: PackageDependency = { express: "^4.18.2" };
+  let devDependencies: PackageDependency = {};
 
   let indexJS: IndexFile = {
     requireChunks: [
@@ -112,14 +116,77 @@ module.exports = router;`;
     ],
   };
 
+  let packageJSON: PackageFile = {
+    name: path.join(args[0]),
+    version: "1.0.0",
+    description: "",
+    main: "index.js",
+    scripts: {
+      start: "export NODE_ENV=production && node index.js",
+    },
+    keywords: [],
+    author: "",
+    license: "ISC",
+    dependencies: dependencies,
+  };
+
+  console.log(args);
   for (let i = 1; i < args.length; i++) {
-    switch (args[i]) {
+    switch (args[i].substring(0, 2)) {
       case "-e":
         indexJS.requireChunks.unshift('require("dotenv").config()');
         devDependencies["dotenv"] = "^16.3.1";
         fs.writeFileSync(path.join(args[0], ".env"), "YOUR_KEY=YOUR_VALUE");
+        break;
+      case "-n":
+        devDependencies["nodemon"] = "^3.0.2";
+        packageJSON.scripts["start-dev"] =
+          "export NODE_ENV=development && nodemon index.js";
+        break;
+      case "-v":
+        const view = args[i].split("=")[1];
+        console.log(view);
+        if (view == "pug") {
+          dependencies["pug"] = "^3.0.2";
+          fs.mkdirSync(path.join(args[0], "views"));
+          indexJS.initializeChunks.push("app.set('views', './views');");
+          indexJS.initializeChunks.push("app.set('view engine', 'pug');");
+
+          let pugData = `html
+head
+    title= title
+body
+    h1= message`;
+          fs.writeFileSync(path.join(args[0], "views", "index.pug"), pugData);
+          indexController.functionChunks
+            .push(`exports.get_handler = (req, res, next) => {
+    res.render('index', { title: 'Hey', message: 'Hello there!' })
+}`);
+        } else {
+          console.log("Invalid view engine: " + view);
+        }
+        break;
     }
   }
+
+  // Generate controller
+  if (indexController.functionChunks.length == 0) {
+    indexController.functionChunks
+      .push(`exports.get_handler = (req, res, next) => {
+    return res.status(200).send('Hi :)');
+}`);
+  }
+  const controllerFD: number = fs.openSync(
+    path.join(args[0], "controllers", "index.controller.js"),
+    "w"
+  );
+  for (const key in indexController) {
+    indexController[key as keyof ControllerFile].forEach((line) => {
+      line = line + "\n";
+      fs.appendFileSync(controllerFD, line);
+    });
+  }
+  fs.closeSync(controllerFD);
 
   // Generate index.js
   const indexFD: number = fs.openSync(path.join(args[0], "index.js"), "w");
@@ -133,19 +200,6 @@ module.exports = router;`;
   fs.closeSync(indexFD);
 
   // Generate package.json
-  let packageJSON: PackageFile = {
-    name: path.join(args[0]),
-    version: "1.0.0",
-    description: "",
-    main: "index.js",
-    scripts: {
-      test: 'echo "Error: no test specified" && exit 1',
-    },
-    keywords: [],
-    author: "",
-    license: "ISC",
-    dependencies: dependencies,
-  };
   if (Object.keys(devDependencies).length > 0)
     packageJSON.devDependencies = devDependencies;
 
@@ -166,8 +220,9 @@ function parse_args(argv: string[]): string[] {
   let args: string[] = [];
   if (argv[2] != "-h") args.push(argv[2]);
   const re: RegExp = /^-[a-zA-Z]$/;
+  const re2: RegExp = /-[A-Za-z]=[A-Za-z]+/;
   for (let i = 2; i < argv.length; i++) {
-    if (argv[i].match(re)) {
+    if (argv[i].match(re) || argv[i].match(re2)) {
       args.push(argv[i]);
     }
   }
