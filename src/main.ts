@@ -58,7 +58,7 @@ function main(): void {
             Options:
             -e:                         add 'dotenv' environment variable support 
             -n:                         add nodemon
-            -v=[OPTION]                 add view engine support (pug, ejs, mustache)
+            -v=[OPTION]                 add view engine support (pug, ejs, mustache, nunjucks)
         `);
     exit(0);
   }
@@ -206,6 +206,25 @@ app.set("view engine", "html");
           indexController.functionChunks
             .push(`exports.get_handler = (req, res, next) => {
     res.render('index', { message: 'The first website was by an organization called CERN, you can still view it here: http://info.cern.ch' })
+}`);
+        } else if (view == "nunjucks") {
+          dependencies["nunjucks"] = "^3.2.4";
+          fs.mkdirSync(path.join(args[0], "views"));
+          indexJS.requireChunks.push(`const nunjucks = require("nunjucks");`);
+          indexJS.initializeChunks.push(`nunjucks.configure('views', {
+    express: app,
+    autoescape: true
+});
+app.set('view engine', 'html');`);
+          let nunjucks = `<html>
+  <body>
+    <h1>{{ message }}</h1>
+  </body>
+</html>`;
+          fs.writeFileSync(path.join(args[0], "views", "index.html"), nunjucks);
+          indexController.functionChunks
+            .push(`exports.get_handler = (req, res, next) => {
+    res.render('index', { message: "There is no McDonald's in Iceland. sad american noises :(" })
 }`);
         } else {
           console.log(
