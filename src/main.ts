@@ -1,5 +1,5 @@
 import { exit } from "process";
-import fs, { mkdirSync } from "fs";
+import fs from "fs";
 import path from "path";
 
 const VERSION: string = "1.0.0";
@@ -130,7 +130,6 @@ module.exports = router;`;
     dependencies: dependencies,
   };
 
-  console.log(args);
   for (let i = 1; i < args.length; i++) {
     switch (args[i].substring(0, 2)) {
       case "-e":
@@ -144,8 +143,7 @@ module.exports = router;`;
           "export NODE_ENV=development && nodemon index.js";
         break;
       case "-v":
-        const view = args[i].split("=")[1];
-        console.log(view);
+        const view = args[i].split("=")[1].toLowerCase();
         if (view == "pug") {
           dependencies["pug"] = "^3.0.2";
           fs.mkdirSync(path.join(args[0], "views"));
@@ -160,10 +158,29 @@ body
           fs.writeFileSync(path.join(args[0], "views", "index.pug"), pugData);
           indexController.functionChunks
             .push(`exports.get_handler = (req, res, next) => {
-    res.render('index', { title: 'Hey', message: 'Hello there!' })
+    res.render('index', { title: 'This sentence contains all the alphabets!', message: 'The five boxing wizards jump quickly' })
+}`);
+        } else if (view == "ejs") {
+          dependencies["ejs"] = "^3.1.9";
+          fs.mkdirSync(path.join(args[0], "views"));
+          indexJS.initializeChunks.push("app.set('views', './views');");
+          indexJS.initializeChunks.push("app.set('view engine', 'ejs');");
+
+          let ejsData = `<html>
+  <body>
+    <%= message %>
+  </body>
+</html>`;
+          fs.writeFileSync(path.join(args[0], "views", "index.ejs"), ejsData);
+          indexController.functionChunks
+            .push(`exports.get_handler = (req, res, next) => {
+    res.render('index', { message: 'The first website was by an organization called CERN, you can still view it here: http://info.cern.ch' })
 }`);
         } else {
-          console.log("Invalid view engine: " + view);
+          console.log(
+            "Invalid view engine specified, failed to initialize view engine :" +
+              view
+          );
         }
         break;
     }
@@ -173,7 +190,7 @@ body
   if (indexController.functionChunks.length == 0) {
     indexController.functionChunks
       .push(`exports.get_handler = (req, res, next) => {
-    return res.status(200).send('Hi :)');
+    return res.status(200).send('Linux was first named FREAX, fortunately someone convinced him to change the name to Linux. phew!');
 }`);
   }
   const controllerFD: number = fs.openSync(
