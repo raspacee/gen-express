@@ -58,7 +58,7 @@ function main(): void {
             Options:
             -e:                         add 'dotenv' environment variable support 
             -n:                         add nodemon
-            -v=[OPTION]                 add view engine support (pug, ejs)
+            -v=[OPTION]                 add view engine support (pug, ejs, mustache)
         `);
     exit(0);
   }
@@ -147,7 +147,7 @@ module.exports = router;`;
         if (view == "pug") {
           dependencies["pug"] = "^3.0.2";
           fs.mkdirSync(path.join(args[0], "views"));
-          indexJS.initializeChunks.push("app.set('views', './views');");
+          indexJS.initializeChunks.push("app.set('views', 'views');");
           indexJS.initializeChunks.push("app.set('view engine', 'pug');");
 
           let pugData = `html
@@ -163,7 +163,7 @@ body
         } else if (view == "ejs") {
           dependencies["ejs"] = "^3.1.9";
           fs.mkdirSync(path.join(args[0], "views"));
-          indexJS.initializeChunks.push("app.set('views', './views');");
+          indexJS.initializeChunks.push("app.set('views', 'views');");
           indexJS.initializeChunks.push("app.set('view engine', 'ejs');");
 
           let ejsData = `<html>
@@ -172,6 +172,37 @@ body
   </body>
 </html>`;
           fs.writeFileSync(path.join(args[0], "views", "index.ejs"), ejsData);
+          indexController.functionChunks
+            .push(`exports.get_handler = (req, res, next) => {
+    res.render('index', { message: 'The first website was by an organization called CERN, you can still view it here: <a href="http://info.cern.ch">http://info.cern.ch</a>' })
+}`);
+        } else if (view == "mustache") {
+          dependencies["mustache"] = "^4.2.0";
+          fs.mkdirSync(path.join(args[0], "views"));
+          indexJS.requireChunks.push(`const Mustache = require("mustache");
+const fs = require("fs");
+          `);
+          indexJS.initializeChunks
+            .push(`app.engine("html", function (filePath, options, callback) {
+  fs.readFile(filePath, function (err, content) {
+    if (err) return callback(err);
+    const rendered = Mustache.render(content.toString(), options);
+    return callback(null, rendered);
+  });
+});
+          `);
+          indexJS.initializeChunks.push(`app.set("views", "views");
+app.set("view engine", "html");
+          `);
+          let mustacheData = `<html>
+  <body>
+    {{ message }}
+  </body>
+</html>`;
+          fs.writeFileSync(
+            path.join(args[0], "views", "index.html"),
+            mustacheData
+          );
           indexController.functionChunks
             .push(`exports.get_handler = (req, res, next) => {
     res.render('index', { message: 'The first website was by an organization called CERN, you can still view it here: http://info.cern.ch' })
