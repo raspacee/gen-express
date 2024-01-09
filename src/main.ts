@@ -110,7 +110,13 @@ module.exports = router;`;
       "app.use(express.json());",
       "app.use(express.urlencoded({ extended: true }));",
     ],
-    routingChunks: ['app.use("/", indexRouter);'],
+    routingChunks: [
+      'app.use("/", indexRouter);',
+      `app.use((err, req, res, next) => {
+  console.error(err.stack);
+  return res.status(400).send(err);
+});`,
+    ],
     footerChunks: [
       `app.listen(3000, () => console.log("Application listening on port: " + 3000))`,
     ],
@@ -196,7 +202,7 @@ app.set("view engine", "html");
           `);
           let mustacheData = `<html>
   <body>
-    {{ message }}
+    <img src="{{ message }}">
   </body>
 </html>`;
           fs.writeFileSync(
@@ -205,7 +211,7 @@ app.set("view engine", "html");
           );
           indexController.functionChunks
             .push(`exports.get_handler = (req, res, next) => {
-    res.render('index', { message: 'The first website was by an organization called CERN, you can still view it here: http://info.cern.ch' })
+    res.render('index', { message: 'https://cloud.githubusercontent.com/assets/288977/8779228/a3cf700e-2f02-11e5-869a-300312fb7a00.gif' })
 }`);
         } else if (view == "nunjucks") {
           dependencies["nunjucks"] = "^3.2.4";
