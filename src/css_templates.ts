@@ -15,4 +15,10 @@ body {
 }
 `;
 
-export { cssTemplate, scssTemplate };
+let stylusTemplate = `my-color = red
+body
+  color my-color
+  text-align center
+`;
+
+export { cssTemplate, scssTemplate, stylusTemplate };

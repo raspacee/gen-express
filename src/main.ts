@@ -19,7 +19,7 @@ import {
   nunjucksTemplate,
   nunjucksTemplateCSS,
 } from "./view_templates.js";
-import { cssTemplate, scssTemplate } from "./css_templates.js";
+import { cssTemplate, scssTemplate, stylusTemplate } from "./css_templates.js";
 
 const VERSION: string = "1.0.0";
 
@@ -215,6 +215,15 @@ app.set('view engine', 'html');`);
           );
           packageJSON.dependencies["sass"] = "^1.69.7";
           packageJSON.scripts["scss"] = "sass --watch scss:public/styles";
+        } else if (style == "stylus") {
+          fs.mkdirSync(path.join(args[0], "stylus"));
+          fs.writeFileSync(
+            path.join(args[0], "stylus", "index.styl"),
+            stylusTemplate
+          );
+          packageJSON.dependencies["stylus"] = "^0.62.0";
+          packageJSON.scripts["stylus"] =
+            "stylus -w stylus --out public/styles";
         } else {
           //TODO: unlink public directory
           console.log("Invalid CSS specified");
