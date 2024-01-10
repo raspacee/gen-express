@@ -11,10 +11,15 @@ import {
 import type { ControllerFile, IndexFile, PackageFile } from "./types.js";
 import {
   pugTemplate,
+  pugTemplateCSS,
   ejsTemplate,
+  ejsTemplateCSS,
   mustacheTemplate,
+  mustacheTemplateCSS,
   nunjucksTemplate,
+  nunjucksTemplateCSS,
 } from "./view_templates.js";
+import { cssTemplate, scssTemplate } from "./css_templates.js";
 
 const VERSION: string = "1.0.0";
 
@@ -111,24 +116,27 @@ function main(): void {
         fs.mkdirSync(path.join(args[0], "views"));
         indexJS.initializeChunks.push("app.set('views', 'views');");
         let controllerMessage: string | null = null;
+        let template: string;
         if (view == "pug") {
           packageJSON.dependencies["pug"] = "^3.0.2";
           indexJS.initializeChunks.push("app.set('view engine', 'pug');");
 
-          fs.writeFileSync(
-            path.join(args[0], "views", "index.pug"),
-            pugTemplate
-          );
+          // If css support is specified generate the template that links to css file
+          args.includes("-c")
+            ? (template = pugTemplate)
+            : (template = pugTemplateCSS);
+          fs.writeFileSync(path.join(args[0], "views", "index.pug"), template);
           controllerMessage =
             "The five boxing wizards jump quickly. This sentence contains all the alphabets!";
         } else if (view == "ejs") {
           packageJSON.dependencies["ejs"] = "^3.1.9";
           indexJS.initializeChunks.push("app.set('view engine', 'ejs');");
 
-          fs.writeFileSync(
-            path.join(args[0], "views", "index.ejs"),
-            ejsTemplate
-          );
+          // If css support is specified generate the template that links to css file
+          args.includes("-c")
+            ? (template = ejsTemplateCSS)
+            : (template = ejsTemplate);
+          fs.writeFileSync(path.join(args[0], "views", "index.ejs"), template);
           controllerMessage =
             "The first website was by an organization called CERN, you can still view it here: http://info.cern.ch";
         } else if (view == "mustache") {
@@ -146,10 +154,10 @@ const fs = require("fs");
 });
           `);
           indexJS.initializeChunks.push('app.set("view engine", "html");');
-          fs.writeFileSync(
-            path.join(args[0], "views", "index.html"),
-            mustacheTemplate
-          );
+          args.includes("-c")
+            ? (template = mustacheTemplate)
+            : (template = mustacheTemplateCSS);
+          fs.writeFileSync(path.join(args[0], "views", "index.html"), template);
           controllerMessage =
             "https://cloud.githubusercontent.com/assets/288977/8779228/a3cf700e-2f02-11e5-869a-300312fb7a00.gif";
         } else if (view == "nunjucks") {
@@ -160,10 +168,10 @@ const fs = require("fs");
     autoescape: true
 });
 app.set('view engine', 'html');`);
-          fs.writeFileSync(
-            path.join(args[0], "views", "index.html"),
-            nunjucksTemplate
-          );
+          args.includes("-c")
+            ? (template = nunjucksTemplate)
+            : (template = nunjucksTemplateCSS);
+          fs.writeFileSync(path.join(args[0], "views", "index.html"), template);
           controllerMessage =
             "There is no McDonald's in Iceland. sad american noises :(";
         } else {
@@ -171,6 +179,7 @@ app.set('view engine', 'html');`);
             "Invalid view engine specified, failed to initialize view engine :" +
               view
           );
+          //TODO: unlink view directory
         }
         if (
           view == "pug" ||
@@ -184,6 +193,31 @@ app.set('view engine', 'html');`);
 }`);
         }
         break;
+      case "-c":
+        const style = args[i].split("=")[1].toLowerCase();
+        fs.mkdirSync(path.join(args[0], "public", "styles"), {
+          recursive: true,
+        });
+        indexJS.initializeChunks.push(
+          'app.use("/assets", express.static("public"));'
+        );
+        if (style == "css") {
+          fs.writeFileSync(
+            path.join(args[0], "public", "styles", "index.css"),
+            cssTemplate
+          );
+        } else if (style == "sass") {
+          fs.mkdirSync(path.join(args[0], "scss"));
+          fs.writeFileSync(
+            path.join(args[0], "scss", "index.scss"),
+            scssTemplate
+          );
+          packageJSON.dependencies["sass"] = "^1.69.7";
+          packageJSON.scripts["scss"] = "sass --watch scss:public/styles";
+        } else {
+          //TODO: unlink public directory
+          console.log("Invalid CSS specified");
+        }
     }
   }
 

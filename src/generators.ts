@@ -1,12 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { exit } from "process";
-import type {
-  ControllerFile,
-  IndexFile,
-  PackageFile,
-  PackageDependency,
-} from "./types.d.ts";
+import type { ControllerFile, IndexFile, PackageFile } from "./types.d.ts";
 
 // Generate index.controller.js
 function generate_controller(args: string[], indexController: ControllerFile) {
