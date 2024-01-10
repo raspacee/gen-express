@@ -41,6 +41,7 @@ function main(): void {
             -e:                         add 'dotenv' environment variable support
             -n:                         add nodemon
             -v=[OPTION]                 add view engine support (pug, ejs, mustache, nunjucks)
+            -c=[OPTION]                 add css support (css, sass)
         `);
     exit(0);
   }
