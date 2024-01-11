@@ -36,7 +36,7 @@ function main(): void {
             Usage:
             generate-express [DIRECTORY-NAME] [OPTIONS]
             Example:
-            generate-express my_webapp -e -n
+            generate-express my_webapp -e -n -v=ejs
 
             Options:
             -e:                         add 'dotenv' environment variable support
