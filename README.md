@@ -1,6 +1,6 @@
 # create-express-app
 
-A simple ExpressJS skeleton generator with one dependency
+A simple ExpressJS skeleton generator with zero dependency
 
 ## How to use
 
