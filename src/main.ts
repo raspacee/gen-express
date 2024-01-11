@@ -22,9 +22,10 @@ import {
 import { cssTemplate, scssTemplate, stylusTemplate } from "./css_templates.js";
 import { postgresTemplate } from "./db_templates.js";
 
-const VERSION: string = "1.0.0";
+const VERSION: string = "1.0.2";
 
 function main(): void {
+  //TODO: check if folder name is specified
   if (process.argv.length < 3) {
     console.log("Usage not correct: run `generate-express -h` for help");
     exit(-1);

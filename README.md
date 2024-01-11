@@ -1,10 +1,14 @@
-# create-express-app
+# spawn-express-app
 
-A simple ExpressJS skeleton generator with zero dependency
+A simple ExpressJS skeleton generator with zero dependency and customizable arguments
+
+## Install
+
+Run `npm install -g spawn-express-app`
 
 ## How to use
 
-Run `create-express-app <DIRECTORY-NAME> [OPTIONS]`
+Run `npx spawn-express-app <DIRECTORY-NAME> [OPTIONS]`
 
 ## Example
 
