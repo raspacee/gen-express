@@ -1,6 +1,6 @@
 {
   "name": "spawn-express-app",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "Generate a ExpressJS skeleton with customizable arguments",
   "main": "build/main.js",
   "bin": "build/main.js",
