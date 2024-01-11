@@ -19,7 +19,7 @@ This will generate a express app called `my-backend` with environment variables,
 | -n          | Add nodemon for development                    |
 | -v=[OPTION] | Add view engine (pug, ejs, mustache, nunjucks) |
 | -c=[OPTION] | Add CSS support (sass, css)                    |
-| -d=[OPTION] | Intgrate with a database (postgres)            |
+| -d=[OPTION] | Integrate with a database (postgres)           |
 
 ## Queries
 
