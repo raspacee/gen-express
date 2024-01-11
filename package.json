@@ -18,5 +18,12 @@
   "license": "MIT",
   "devDependencies": {
     "@types/node": "^20.10.6"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/raspacee/gen-express"
+  },
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/"
   }
 }
