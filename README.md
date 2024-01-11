@@ -12,7 +12,7 @@ Run `npx spawn-express-app <DIRECTORY-NAME> [OPTIONS]`
 
 ## Example
 
-`create-express-app my-backend -e -n -d=postgres` <br>
+`npx spawn-express-app my-backend -e -n -d=postgres` <br>
 This will generate a express app called `my-backend` with environment variables, nodemon and postgres already setup for your use.
 
 ## Options
