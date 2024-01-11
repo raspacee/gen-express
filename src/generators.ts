@@ -21,6 +21,7 @@ function generate_controller(args: string[], indexController: ControllerFile) {
       line = line + "\n";
       fs.appendFileSync(controllerFD, line);
     });
+    fs.appendFileSync(controllerFD, "\n");
   }
   fs.closeSync(controllerFD);
 }

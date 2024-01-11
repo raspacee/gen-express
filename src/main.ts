@@ -20,6 +20,7 @@ import {
   nunjucksTemplateCSS,
 } from "./view_templates.js";
 import { cssTemplate, scssTemplate, stylusTemplate } from "./css_templates.js";
+import { postgresTemplate } from "./db_templates.js";
 
 const VERSION: string = "1.0.0";
 
@@ -42,6 +43,7 @@ function main(): void {
             -n:                         add nodemon
             -v=[OPTION]                 add view engine support (pug, ejs, mustache, nunjucks)
             -c=[OPTION]                 add css support (css, sass)
+            -d=[OPTION]                 add db support (postgres)
         `);
     exit(0);
   }
@@ -57,6 +59,7 @@ function main(): void {
 
   // Initialize index.controller.js
   let indexController: ControllerFile = {
+    requireChunks: ["const express = require('express')"],
     functionChunks: [],
   };
 
@@ -228,6 +231,23 @@ app.set('view engine', 'html');`);
           //TODO: unlink public directory
           console.log("Invalid CSS specified");
         }
+        break;
+      case "-d":
+        const db = args[i].split("=")[1].toLowerCase();
+        fs.mkdirSync(path.join(args[0], "db"));
+        if (db == "postgres") {
+          fs.writeFileSync(
+            path.join(args[0], "db", "index.js"),
+            postgresTemplate
+          );
+          packageJSON.dependencies["pg"] = "^8.11.3";
+          indexController.requireChunks.push(
+            "const { query, pool } = require('../db/index.js');"
+          );
+        } else {
+          console.log("Invalid db option specified");
+        }
+        break;
     }
   }
 

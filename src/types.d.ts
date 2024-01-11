@@ -4,6 +4,7 @@
  */
 
 interface ControllerFile {
+  requireChunks: string[];
   functionChunks: string[];
 }
 
