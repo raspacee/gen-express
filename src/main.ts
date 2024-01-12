@@ -26,6 +26,8 @@ import { postgresTemplate } from "./db_templates.js";
 const VERSION: string = "1.0.2";
 
 function main(): void {
+  let messageBuffer = "";
+
   if (process.argv.length < 3 || process.argv[2][0] == "-") {
     console.log("Usage not correct: run `generate-express -h` for help");
     exit(-1);
@@ -54,10 +56,12 @@ function main(): void {
     exit(-1);
   }
   // Everything is fine can start working now
+  messageBuffer += "Creating directories\n";
   fs.mkdirSync(args[0]);
   fs.mkdirSync(path.join(args[0], "controllers"));
   fs.mkdirSync(path.join(args[0], "routes"));
 
+  messageBuffer += "Creating essential index files\n";
   // Initialize index.controller.js
   let indexController: ControllerFile = {
     requireChunks: ["const express = require('express')"],
@@ -117,6 +121,7 @@ function main(): void {
           "export NODE_ENV=development && nodemon index.js";
         break;
       case "-v":
+        messageBuffer += "Creating view directories\n";
         const view = args[i].split("=")[1].toLowerCase();
         fs.mkdirSync(path.join(args[0], "views"));
         indexJS.initializeChunks.push("app.set('views', 'views');");
@@ -180,10 +185,10 @@ app.set('view engine', 'html');`);
           controllerMessage =
             "There is no McDonald's in Iceland. sad american noises :(";
         } else {
-          console.log(
-            "Invalid view engine specified, failed to initialize view engine :" +
-              view
-          );
+          messageBuffer +=
+            "Failed to initialize view engine, invalid view engine specified : " +
+            view +
+            "\n";
           //TODO: unlink view directory
         }
         if (
@@ -199,6 +204,7 @@ app.set('view engine', 'html');`);
         }
         break;
       case "-c":
+        messageBuffer += "Initializing CSS\n";
         const style = args[i].split("=")[1].toLowerCase();
         fs.mkdirSync(path.join(args[0], "public", "styles"), {
           recursive: true,
@@ -230,10 +236,12 @@ app.set('view engine', 'html');`);
             "stylus -w stylus --out public/styles";
         } else {
           //TODO: unlink public directory
-          console.log("Invalid CSS specified");
+          messageBuffer +=
+            "Failed to initialize CSS, invalid CSS option specified\n";
         }
         break;
       case "-d":
+        messageBuffer += "Initializing database\n";
         const db = args[i].split("=")[1].toLowerCase();
         fs.mkdirSync(path.join(args[0], "db"));
         if (db == "postgres") {
@@ -246,7 +254,8 @@ app.set('view engine', 'html');`);
             "const { query, pool } = require('../db/index.js');"
           );
         } else {
-          console.log("Invalid db option specified");
+          messageBuffer +=
+            "Failed to initialize db, invalid db option specified\n";
         }
         break;
     }
@@ -256,6 +265,12 @@ app.set('view engine', 'html');`);
   generate_controller(args, indexController);
   generate_index(args, indexJS);
   generate_package(args, packageJSON);
+  messageBuffer += `Project '${args[0]}' successfully created\n`;
+  messageBuffer += `\nTo initialize the project run: \n`;
+  messageBuffer += `cd ${args[0]} && npm install\n`;
+  messageBuffer += `To start the project run: \n`;
+  messageBuffer += `npm run start`;
+  console.log(messageBuffer);
 }
 
 main();
