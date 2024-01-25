@@ -40,9 +40,9 @@ function main(): void {
   if (args[0] == "-h") {
     console.log(`spawn-express-app: version ${VERSION}
             Usage:
-            generate-express [DIRECTORY-NAME] [OPTIONS]
+            spawn-express-app [DIRECTORY-NAME] [OPTIONS]
             Example:
-            generate-express my_webapp -e -n -v=ejs
+            spawn-express-app my_webapp -e -n -v=ejs
 
             Options:
             -e:                         add 'dotenv' environment variable support
