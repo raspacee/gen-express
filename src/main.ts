@@ -23,12 +23,15 @@ import {
 import { cssTemplate, scssTemplate, stylusTemplate } from "./css_templates.js";
 import { postgresTemplate } from "./db_templates.js";
 
-const VERSION: string = "1.0.2";
+const VERSION: string = "1.0.4";
 
 function main(): void {
   let messageBuffer = "";
 
-  if (process.argv.length < 3 || process.argv[2][0] == "-") {
+  if (
+    process.argv.length < 3 ||
+    (process.argv[2] != "-h" && process.argv[2][0] == "-")
+  ) {
     console.log("Usage not correct: run `generate-express -h` for help");
     exit(-1);
   }
