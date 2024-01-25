@@ -32,13 +32,13 @@ function main(): void {
     process.argv.length < 3 ||
     (process.argv[2] != "-h" && process.argv[2][0] == "-")
   ) {
-    console.log("Usage not correct: run `generate-express -h` for help");
+    console.log("Usage not correct: run `spawn-express-app -h` for help");
     exit(-1);
   }
 
   let args: string[] = parse_args(process.argv);
   if (args[0] == "-h") {
-    console.log(`generate-express: version ${VERSION}
+    console.log(`spawn-express-app: version ${VERSION}
             Usage:
             generate-express [DIRECTORY-NAME] [OPTIONS]
             Example:
