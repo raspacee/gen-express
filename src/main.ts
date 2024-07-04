@@ -23,6 +23,8 @@ import {
 import { cssTemplate, scssTemplate, stylusTemplate } from "./css_templates.js";
 import { postgresTemplate } from "./db_templates.js";
 
+const isWin = process.platform == "win32";
+
 const VERSION: string = "1.0.4";
 
 function main(): void {
@@ -100,7 +102,9 @@ function main(): void {
     description: "",
     main: "index.js",
     scripts: {
-      start: "export NODE_ENV=production && node index.js",
+      start: isWin
+        ? "set NODE_ENV=production && node index.js"
+        : "export NODE_ENV=production && node index.js",
     },
     keywords: [],
     author: "",
@@ -111,54 +115,62 @@ function main(): void {
     devDependencies: {},
   };
 
-  for (let i = 1; i < args.length; i++) {
-    switch (args[i].substring(0, 2)) {
-      case "-e":
-        indexJS.requireChunks.unshift('require("dotenv").config()');
-        packageJSON.devDependencies["dotenv"] = "^16.3.1";
-        fs.writeFileSync(path.join(args[0], ".env"), "YOUR_KEY=YOUR_VALUE");
-        break;
-      case "-n":
-        packageJSON.devDependencies["nodemon"] = "^3.0.2";
-        packageJSON.scripts["start-dev"] =
-          "export NODE_ENV=development && nodemon index.js";
-        break;
-      case "-v":
-        messageBuffer += "Creating view directories\n";
-        const view = args[i].split("=")[1].toLowerCase();
-        fs.mkdirSync(path.join(args[0], "views"));
-        indexJS.initializeChunks.push("app.set('views', 'views');");
-        let controllerMessage: string | null = null;
-        let template: string;
-        if (view == "pug") {
-          packageJSON.dependencies["pug"] = "^3.0.2";
-          indexJS.initializeChunks.push("app.set('view engine', 'pug');");
+  try {
+    for (let i = 1; i < args.length; i++) {
+      switch (args[i].substring(0, 2)) {
+        case "-e":
+          indexJS.requireChunks.unshift('require("dotenv").config()');
+          packageJSON.devDependencies["dotenv"] = "^16.3.1";
+          fs.writeFileSync(path.join(args[0], ".env"), "YOUR_KEY=YOUR_VALUE");
+          break;
+        case "-n":
+          packageJSON.devDependencies["nodemon"] = "^3.0.2";
+          packageJSON.scripts["start-dev"] = isWin
+            ? "set NODE_ENV=development && nodemon index.js"
+            : "export NODE_ENV=development && nodemon index.js";
+          break;
+        case "-v":
+          messageBuffer += "Creating view directories\n";
+          const view = args[i].split("=")[1].toLowerCase();
+          fs.mkdirSync(path.join(args[0], "views"));
+          indexJS.initializeChunks.push("app.set('views', 'views');");
+          let controllerMessage: string | null = null;
+          let template: string;
+          if (view == "pug") {
+            packageJSON.dependencies["pug"] = "^3.0.2";
+            indexJS.initializeChunks.push("app.set('view engine', 'pug');");
 
-          // If css support is specified generate the template that links to css file
-          args.includes("-c")
-            ? (template = pugTemplate)
-            : (template = pugTemplateCSS);
-          fs.writeFileSync(path.join(args[0], "views", "index.pug"), template);
-          controllerMessage =
-            "The five boxing wizards jump quickly. This sentence contains all the alphabets!";
-        } else if (view == "ejs") {
-          packageJSON.dependencies["ejs"] = "^3.1.9";
-          indexJS.initializeChunks.push("app.set('view engine', 'ejs');");
+            // If css support is specified generate the template that links to css file
+            args.includes("-c")
+              ? (template = pugTemplate)
+              : (template = pugTemplateCSS);
+            fs.writeFileSync(
+              path.join(args[0], "views", "index.pug"),
+              template
+            );
+            controllerMessage =
+              "The five boxing wizards jump quickly. This sentence contains all the alphabets!";
+          } else if (view == "ejs") {
+            packageJSON.dependencies["ejs"] = "^3.1.9";
+            indexJS.initializeChunks.push("app.set('view engine', 'ejs');");
 
-          // If css support is specified generate the template that links to css file
-          args.includes("-c")
-            ? (template = ejsTemplateCSS)
-            : (template = ejsTemplate);
-          fs.writeFileSync(path.join(args[0], "views", "index.ejs"), template);
-          controllerMessage =
-            "The first website was by an organization called CERN, you can still view it here: http://info.cern.ch";
-        } else if (view == "mustache") {
-          packageJSON.dependencies["mustache"] = "^4.2.0";
-          indexJS.requireChunks.push(`const Mustache = require("mustache");
+            // If css support is specified generate the template that links to css file
+            args.includes("-c")
+              ? (template = ejsTemplateCSS)
+              : (template = ejsTemplate);
+            fs.writeFileSync(
+              path.join(args[0], "views", "index.ejs"),
+              template
+            );
+            controllerMessage =
+              "The first website was by an organization called CERN, you can still view it here: http://info.cern.ch";
+          } else if (view == "mustache") {
+            packageJSON.dependencies["mustache"] = "^4.2.0";
+            indexJS.requireChunks.push(`const Mustache = require("mustache");
 const fs = require("fs");
           `);
-          indexJS.initializeChunks
-            .push(`app.engine("html", function (filePath, options, callback) {
+            indexJS.initializeChunks
+              .push(`app.engine("html", function (filePath, options, callback) {
   fs.readFile(filePath, function (err, content) {
     if (err) return callback(err);
     const rendered = Mustache.render(content.toString(), options);
@@ -166,114 +178,124 @@ const fs = require("fs");
   });
 });
           `);
-          indexJS.initializeChunks.push('app.set("view engine", "html");');
-          args.includes("-c")
-            ? (template = mustacheTemplate)
-            : (template = mustacheTemplateCSS);
-          fs.writeFileSync(path.join(args[0], "views", "index.html"), template);
-          controllerMessage =
-            "https://cloud.githubusercontent.com/assets/288977/8779228/a3cf700e-2f02-11e5-869a-300312fb7a00.gif";
-        } else if (view == "nunjucks") {
-          packageJSON.dependencies["nunjucks"] = "^3.2.4";
-          indexJS.requireChunks.push(`const nunjucks = require("nunjucks");`);
-          indexJS.initializeChunks.push(`nunjucks.configure('views', {
+            indexJS.initializeChunks.push('app.set("view engine", "html");');
+            args.includes("-c")
+              ? (template = mustacheTemplate)
+              : (template = mustacheTemplateCSS);
+            fs.writeFileSync(
+              path.join(args[0], "views", "index.html"),
+              template
+            );
+            controllerMessage =
+              "https://cloud.githubusercontent.com/assets/288977/8779228/a3cf700e-2f02-11e5-869a-300312fb7a00.gif";
+          } else if (view == "nunjucks") {
+            packageJSON.dependencies["nunjucks"] = "^3.2.4";
+            indexJS.requireChunks.push(`const nunjucks = require("nunjucks");`);
+            indexJS.initializeChunks.push(`nunjucks.configure('views', {
     express: app,
     autoescape: true
 });
 app.set('view engine', 'html');`);
-          args.includes("-c")
-            ? (template = nunjucksTemplate)
-            : (template = nunjucksTemplateCSS);
-          fs.writeFileSync(path.join(args[0], "views", "index.html"), template);
-          controllerMessage =
-            "There is no McDonald's in Iceland. sad american noises :(";
-        } else {
-          messageBuffer +=
-            "Failed to initialize view engine, invalid view engine specified : " +
-            view +
-            "\n";
-          //TODO: unlink view directory
-        }
-        if (
-          view == "pug" ||
-          view == "ejs" ||
-          view == "nunjucks" ||
-          view == "mustache"
-        ) {
-          indexController.functionChunks
-            .push(`exports.get_handler = (req, res, next) => {
+            args.includes("-c")
+              ? (template = nunjucksTemplate)
+              : (template = nunjucksTemplateCSS);
+            fs.writeFileSync(
+              path.join(args[0], "views", "index.html"),
+              template
+            );
+            controllerMessage =
+              "There is no McDonald's in Iceland. sad american noises :(";
+          } else {
+            messageBuffer +=
+              "Failed to initialize view engine, invalid view engine specified : " +
+              view +
+              "\n";
+            //TODO: unlink view directory
+          }
+          if (
+            view == "pug" ||
+            view == "ejs" ||
+            view == "nunjucks" ||
+            view == "mustache"
+          ) {
+            indexController.functionChunks
+              .push(`exports.get_handler = (req, res, next) => {
     res.render('index', { message: '${controllerMessage}' })
 }`);
-        }
-        break;
-      case "-c":
-        messageBuffer += "Initializing CSS\n";
-        const style = args[i].split("=")[1].toLowerCase();
-        fs.mkdirSync(path.join(args[0], "public", "styles"), {
-          recursive: true,
-        });
-        indexJS.initializeChunks.push(
-          'app.use("/assets", express.static("public"));'
-        );
-        if (style == "css") {
-          fs.writeFileSync(
-            path.join(args[0], "public", "styles", "index.css"),
-            cssTemplate
+          }
+          break;
+        case "-c":
+          messageBuffer += "Initializing CSS\n";
+          const style = args[i].split("=")[1].toLowerCase();
+          fs.mkdirSync(path.join(args[0], "public", "styles"), {
+            recursive: true,
+          });
+          indexJS.initializeChunks.push(
+            'app.use("/assets", express.static("public"));'
           );
-        } else if (style == "sass") {
-          fs.mkdirSync(path.join(args[0], "scss"));
-          fs.writeFileSync(
-            path.join(args[0], "scss", "index.scss"),
-            scssTemplate
-          );
-          packageJSON.dependencies["sass"] = "^1.69.7";
-          packageJSON.scripts["scss"] = "sass --watch scss:public/styles";
-        } else if (style == "stylus") {
-          fs.mkdirSync(path.join(args[0], "stylus"));
-          fs.writeFileSync(
-            path.join(args[0], "stylus", "index.styl"),
-            stylusTemplate
-          );
-          packageJSON.dependencies["stylus"] = "^0.62.0";
-          packageJSON.scripts["stylus"] =
-            "stylus -w stylus --out public/styles";
-        } else {
-          //TODO: unlink public directory
-          messageBuffer +=
-            "Failed to initialize CSS, invalid CSS option specified\n";
-        }
-        break;
-      case "-d":
-        messageBuffer += "Initializing database\n";
-        const db = args[i].split("=")[1].toLowerCase();
-        fs.mkdirSync(path.join(args[0], "db"));
-        if (db == "postgres") {
-          fs.writeFileSync(
-            path.join(args[0], "db", "index.js"),
-            postgresTemplate
-          );
-          packageJSON.dependencies["pg"] = "^8.11.3";
-          indexController.requireChunks.push(
-            "const { query, pool } = require('../db/index.js');"
-          );
-        } else {
-          messageBuffer +=
-            "Failed to initialize db, invalid db option specified\n";
-        }
-        break;
+          if (style == "css") {
+            fs.writeFileSync(
+              path.join(args[0], "public", "styles", "index.css"),
+              cssTemplate
+            );
+          } else if (style == "sass") {
+            fs.mkdirSync(path.join(args[0], "scss"));
+            fs.writeFileSync(
+              path.join(args[0], "scss", "index.scss"),
+              scssTemplate
+            );
+            packageJSON.dependencies["sass"] = "^1.69.7";
+            packageJSON.scripts["scss"] = "sass --watch scss:public/styles";
+          } else if (style == "stylus") {
+            fs.mkdirSync(path.join(args[0], "stylus"));
+            fs.writeFileSync(
+              path.join(args[0], "stylus", "index.styl"),
+              stylusTemplate
+            );
+            packageJSON.dependencies["stylus"] = "^0.62.0";
+            packageJSON.scripts["stylus"] =
+              "stylus -w stylus --out public/styles";
+          } else {
+            //TODO: unlink public directory
+            messageBuffer +=
+              "Failed to initialize CSS, invalid CSS option specified\n";
+          }
+          break;
+        case "-d":
+          messageBuffer += "Initializing database\n";
+          const db = args[i].split("=")[1].toLowerCase();
+          fs.mkdirSync(path.join(args[0], "db"));
+          if (db == "postgres") {
+            fs.writeFileSync(
+              path.join(args[0], "db", "index.js"),
+              postgresTemplate
+            );
+            packageJSON.dependencies["pg"] = "^8.11.3";
+            indexController.requireChunks.push(
+              "const { query, pool } = require('../db/index.js');"
+            );
+          } else {
+            messageBuffer +=
+              "Failed to initialize db, invalid db option specified\n";
+          }
+          break;
+      }
     }
-  }
 
-  generate_router(args);
-  generate_controller(args, indexController);
-  generate_index(args, indexJS);
-  generate_package(args, packageJSON);
-  messageBuffer += `Project '${args[0]}' successfully created\n`;
-  messageBuffer += `\nTo initialize the project run: \n`;
-  messageBuffer += `cd ${args[0]} && npm install\n`;
-  messageBuffer += `To start the project run: \n`;
-  messageBuffer += `npm run start`;
-  console.log(messageBuffer);
+    generate_router(args);
+    generate_controller(args, indexController);
+    generate_index(args, indexJS);
+    generate_package(args, packageJSON);
+    messageBuffer += `Project '${args[0]}' successfully created\n`;
+    messageBuffer += `\nTo initialize the project run: \n`;
+    messageBuffer += `cd ${args[0]} && npm install\n`;
+    messageBuffer += `To start the project run: \n`;
+    messageBuffer += `npm run start`;
+    console.log(messageBuffer);
+  } catch (err) {
+    fs.rmSync(args[0], { recursive: true, force: true });
+    console.log("Usage not correct: run `spawn-express-app -h` for help");
+  }
 }
 
 main();
